@@ -13,9 +13,58 @@ const MongoDBStore = connectMongoDBSession(session);
 import userRouter from './routes/userRoute.js';
 import vendorRouter from './routes/vendorRoute.js';
 import doctorRouter from './routes/doctorRoute.js';
+import operatorRouter from './routes/operatorRoute.js';
 import { fileURLToPath } from "url";
+import WebSocket, { WebSocketServer } from 'ws';  // Import WebSocket and WebSocketServer
+
 dotenv.config()
 const app = Express()
+
+
+const clients = new Map();
+
+// WebSocket server setup
+const wss = new WebSocketServer({ noServer: true });
+
+wss.on('connection', (ws, req) => {
+  const userId = req.url.split('=')[1]; 
+  console.log("Connected to WebSocket");
+
+  if (userId) {
+    clients.set(userId, ws);
+    console.log(`User ${userId} connected`);
+
+    ws.on('message', (message) => {
+      console.log(`Received message from user ${userId}: ${message}`);
+    });
+
+    ws.on('close', () => {
+      clients.delete(userId);
+      console.log(`User ${userId} disconnected`);
+    });
+  }
+});
+
+export const sendMessage = (userId, message) => {
+  const client = clients.get(userId);
+  if (client && client.readyState === WebSocket.OPEN) {
+    client.send(JSON.stringify(message));
+    console.log(`Sent message to user ${userId}:`, message);
+  } else {
+    console.log(`User ${userId} is not connected or WebSocket is not open`);
+  }
+};
+
+// Example message
+
+
+// const server = app.listen(process.env.PORT || 8000, async () => {
+//   await connectDB();
+//   console.log(`Server is running on port ${server.address().port}`);
+// });
+
+
+
 
 /* using cors for enabling cross-origin requests */
 app.use(cors({
@@ -99,6 +148,7 @@ app.use(Express.static(path.join(__dirname, 'public')));
 app.use("/api/user", userRouter);
 app.use("/api/vendor", vendorRouter);
 app.use("/api/doctor", doctorRouter);
+app.use("/api/operator", operatorRouter);
 
 
 app.use((err, req, res, next) => {
@@ -112,12 +162,18 @@ app.use((err, req, res, next) => {
   });
 
 
-let server = async () => {
+  let startServer = async () => {
     await connectDB();
     const PORT = process.env.PORT || 8000;
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
-  };
 
-server()
+    server.on('upgrade', (request, socket, head) => {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    });
+};
+
+startServer();

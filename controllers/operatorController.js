@@ -1,8 +1,10 @@
-import Doctor from "../models/doctor/practitioner.model.js";
-import WebSocket, { WebSocketServer } from "ws";
+
+
 import bcrypt from "bcryptjs";
 import { errorHandler } from "../utils/error.js";
 import jwt from "jsonwebtoken";
+import Operator from "../models/operator/operator.model.js";
+import { sendMessage } from "../index.js";
 
 // Function to hash the password
 const hashPassword = async (password) => {
@@ -15,20 +17,20 @@ const hashPassword = async (password) => {
 };
 
 // Function to check if a doctor with the provided email already exists
-const checkDoctorExists = async (email) => {
-  return await Doctor.findOne({ email }); // Find a doctor by email
+const checkOperatorExists = async (email) => {
+  return await Operator.findOne({ email }); // Find a doctor by email
 };
 
 // Controller function to handle doctor registration
-export const registerDoctor = async (req, res, next) => {
+export const registerOperator = async (req, res, next) => {
   const { password, email, ...rest } = req.body;
 
   try {
     // Check if the doctor already exists in the database
-    const existingDoctor = await checkDoctorExists(email);
-    if (existingDoctor) {
+    const existingOperator = await checkOperatorExists(email);
+    if (existingOperator) {
       return next(
-        errorHandler(400, "Doctor with this email Id already exists") // Return an error if the doctor already exists
+        errorHandler(400, "operator with this email Id already exists") // Return an error if the doctor already exists
       );
     }
 
@@ -36,22 +38,22 @@ export const registerDoctor = async (req, res, next) => {
     const hashedPassword = await hashPassword(password);
 
     // Create a new doctor instance with the hashed password and other details
-    const newDoctor = new Doctor({
+    const newOperator = new Operator({
       ...rest,
       email,
       password: hashedPassword,
     });
 
     // Save the new doctor to the database
-    await newDoctor.save();
+    await newOperator.save();
 
     // Generate a JWT token for the newly registered doctor
-    const token = jwt.sign({ id: newDoctor._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: newOperator._id }, process.env.JWT_SECRET);
 
     // Send a success response with the doctor details and token
     res.status(201).json({
-      message: "Doctor registered successfully",
-      doctor: newDoctor,
+      message: "Operator registered successfully",
+      operator: newOperator,
       token,
     });
   } catch (error) {
@@ -61,23 +63,23 @@ export const registerDoctor = async (req, res, next) => {
 };
 
 // Controller function to handle doctor login
-export const loginDoctor = async (req, res, next) => {
+export const loginOperator = async (req, res, next) => {
   const { email, password, contactNumber } = req.body;
 
   try {
     // Check if the doctor exists by either email or contact number
-    const existingDoctor = await Doctor.findOne({
+    const existingOperator = await Operator.findOne({
       $or: [{ email }, { contactNumber }],
     });
 
-    if (!existingDoctor) {
+    if (!existingOperator) {
       return next(errorHandler(400, "Invalid email or contact number")); // Return an error if the doctor is not found
     }
 
     // Compare the provided password with the stored hashed password
     const isValidPassword = bcrypt.compareSync(
       password,
-      existingDoctor.password
+      existingOperator.password
     );
 
     if (!isValidPassword) {
@@ -85,7 +87,7 @@ export const loginDoctor = async (req, res, next) => {
     }
 
     // Generate a JWT token for the logged-in doctor
-    const token = jwt.sign({ id: existingDoctor._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: existingOperator._id }, process.env.JWT_SECRET);
 
     // Send a success response with the doctor details and token
     res.status(200).json({
@@ -101,14 +103,14 @@ export const loginDoctor = async (req, res, next) => {
 export const profileInfo = async (req, res, next) => {
   try {
     // Find the doctor by ID from the JWT token
-    const doctor = await Doctor.findById(req.user.id);
+    const operator = await Operator.findById(req.user.id);
 
-    if (!doctor) {
-      return next(errorHandler(404, "Doctor not found")); // Return an error if the doctor is not found
+    if (!operator) {
+      return next(errorHandler(404, "operator not found")); // Return an error if the doctor is not found
     }
 
     // Send the doctor's profile information as a response
-    res.status(200).json(doctor);
+    res.status(200).json(operator);
   } catch (error) {
     next(error); // Error handling for unexpected issues
   }
@@ -118,51 +120,27 @@ export const profileInfo = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
   try {
     // Find the doctor by ID and update their profile with the provided data
-    const doctor = await Doctor.findByIdAndUpdate(req.user.id, req.body, {
+    const operator = await Operator.findByIdAndUpdate(req.user.id, req.body, {
       new: true, // Return the updated document
     });
 
     // Send the updated doctor profile as a response
-    res.status(200).json(doctor);
+    res.status(200).json(operator);
   } catch (error) {
     next(error); // Error handling for unexpected issues
   }
 };
 
-const wss = new WebSocketServer({ port: 8080 });
-const doctorConnections = new Map(); // Use a Map to store connections
 
-export const toggleDoctorActiveStatus = async (req, res, next) => {
-  const doctorId = req.user.id;
+export const responseToBookingRequest=async(req,res,next)=>{
+  const {operatorResponse}=req.body;
   try {
-    wss.on("connection", (ws, req) => {
-      // Assuming doctorId is sent as a query parameter or in some other way
-
-      if (doctorId) {
-        // Store the connection with the doctorId as the key
-        console.log(ws)
-        doctorConnections.set(doctorId, ws);
-        console.log(`Doctor ${doctorId} connected`);
-      }
-
-      ws.on("close", () => {
-        // Remove the connection when the doctor disconnects
-        doctorConnections.delete(doctorId);
-        console.log(`Doctor ${doctorId} disconnected`);
-      });
-    });
-    res.status(200).json(doctorConnections.get(doctorId));
+    
+    if(operatorResponse==="accepted"){
+      sendMessage(req.body.doctorRef,req.body)
+    }
+    res.status(200).json("all good")
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
-
-export const visitRequest = async (req, res, next) => {
-  const userId = req.user.id;
-  const { doctorId, geoLocation, disease, fees } = req.body;
-  try {
-  } catch (error) {}
-};
-
-// https://chatgpt.com/share/8f431943-9cd2-41f3-85a5-141bb174c51b
- 
+}

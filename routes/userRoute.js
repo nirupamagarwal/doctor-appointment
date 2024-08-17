@@ -4,7 +4,8 @@ import authenticateUser, {
   getProfileInfo,
   updateUserInfo,
   orderMedicine,
-  bookDoctorAppointment
+  bookDocter,
+  medicalHistory
 } from "../controllers/userController.js";
 import { verifyUser } from "../middleware/jwt-verfication.js";
 
@@ -14,5 +15,8 @@ router.post("/authenticate", authenticateUser);
 router.post("/profile", verifyUser, getProfileInfo);
 router.post("/update", verifyUser, updateUserInfo);
 router.post("/orderMedicine", verifyUser, orderMedicine);
-router.post("/bookDoctorAppointment",verifyUser,bookDoctorAppointment);
+router.post("/bookDocter", verifyUser, bookDocter);
+router.post("/medicalHistory",verifyUser,medicalHistory);
+
+
 export default router;

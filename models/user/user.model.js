@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import addressSchema from "../general/address.model.js";
 import orderDetailsSchema from "./order.model.js";
 
+import {doctorBookingSchema} from "../appointment/doctorAppointment.model.js";
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -53,6 +55,7 @@ const userSchema = new mongoose.Schema(
     },
     address: addressSchema, // Embedded document
     medicineOrdered: [orderDetailsSchema],
+    appointmentBooked:[doctorBookingSchema]
   },
   { timestamps: true }
 );

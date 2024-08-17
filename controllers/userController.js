@@ -2,8 +2,9 @@ import User from "../models/user/user.model.js";
 import jwt from "jsonwebtoken";
 import { errorHandler } from "../utils/error.js";
 import Medicine from "../models/medicine/medicine.model.js";
-import doctorBooking from "../models/booking/doctor.booking.model.js";
-
+import DoctorBooking from "../models/appointment/doctorAppointment.model.js";
+import { sendMessage } from "../index.js";
+import History from "../models/medicalHistory/patientHistory.js";
 
 export default async (req, res, next) => {
   try {
@@ -113,47 +114,48 @@ export const orderMedicine = async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
- export const bookDoctorAppointment = async (req, res, next) =>{
-  const {action}=req.body;
-  try{
-    
-    const userId = req.user.id;
-    // Find the user
+
+export const bookDocter = async (req, res, next) => {
+  const userId = req.user.id;
+  const { address, ...rest } = req.body;
+  console.log(address)
+  try {
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    const doctorId = req.doctor.id;
-    // Find the doctor
-    const doctor = await Doctor.findById(doctorId);
-    if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
-    }
-    const doctorbooking = await doctorBooking.findById(req.params.doctorbookingId);
+   const patientAddress = address || user.address;
+    const newbooking = new DoctorBooking({
+      rest,
+      patientAddress,
+    });
+    // await newbooking.save()
 
-    if (!doctorbooking) {
-        return res.status(404).json({ msg: 'Doctor Booking not found' });
-    }
+    user.appointmentBooked.push(newbooking);
+    // await user.save();
+   sendMessage("66b703e5339abb8e49c4cb5e", {disease:req.body.disease,userId:userId,fees:400})
+res.status(200).json("request sent to operator")
+  } catch (error) {
+    next(error)
+  }
+};
 
-    if(action==='accept')
-    {
-     doctorbooking.status="accepted";
-     doctorbooking.doctorResponse="accepted";
-    }
-    else if(action==='reject')
-    {
-      doctorbooking.status="cancelled";
-      doctorbooking.doctorResponse="rejected";
-    }
-    else
-   { return res.status(400).json({ msg: 'Invalid action' });
+export const medicalHistory = async (req, res, next) =>{
+  const userId = req.user.id;
+  const {conditions, medications, allergies, surgeries, familyHistory } = req.body;
+  try {
+    const user=await User.findById(userId);
+    const History = new History({
+      userId,
+      conditions,
+      medications,
+      allergies,
+      surgeries,
+      familyHistory,
+    });
+    const savedHistory = await History.save();
+    // Associate with the user
+    await User.findByIdAndUpdate(userId, { History: savedHistory._id });
+    res.status(201).json(savedHistory);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating medical history', error });
   }
-  
-  await doctorbooking.save();
-  res.json({ msg: `Booking ${action}ed`, doctorbooking });
-  }
-  catch(error) {
-    console.error("Error booking an Appointment", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
- }
+};
+ 
