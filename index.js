@@ -16,6 +16,13 @@ import doctorRouter from './routes/doctorRoute.js';
 import operatorRouter from './routes/operatorRoute.js';
 import { fileURLToPath } from "url";
 import WebSocket, { WebSocketServer } from 'ws';  // Import WebSocket and WebSocketServer
+import swaggerUi from 'swagger-ui-express';
+import swaggerDocument from './swagger-output.json' assert { type: 'json' };
+
+
+
+
+
 
 dotenv.config()
 const app = Express()
@@ -73,6 +80,9 @@ app.use(cors({
 }));
 app.options("*", cors());
 
+//swagger api
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 app.all('*', function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -85,6 +95,7 @@ app.all('*', function (req, res, next) {
         next();
     }
 });
+
 
 
 const connectDB = async () => {

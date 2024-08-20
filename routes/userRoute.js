@@ -10,7 +10,7 @@ import authenticateUser, {
 import { verifyUser } from "../middleware/jwt-verfication.js";
 
 const router = express.Router();
-
+ 
 router.post("/authenticate", authenticateUser);
 router.post("/profile", verifyUser, getProfileInfo);
 router.post("/update", verifyUser, updateUserInfo);

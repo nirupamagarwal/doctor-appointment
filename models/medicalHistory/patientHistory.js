@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const medicalHistorySchema = new mongoose.Schema({
+export const medicalHistorySchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -11,9 +11,8 @@ const medicalHistorySchema = new mongoose.Schema({
     allergies: [{ type: String }],
     surgeries: [{ type: String }],
     familyHistory: [{ type: String }],
-},
-{ timestamps: true }
-);
+}, 
+{ timestamps: true });
 
 const History = mongoose.model('medicalHistory', medicalHistorySchema);
 export default History;

@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 import addressSchema from "../general/address.model.js";
 import orderDetailsSchema from "./order.model.js";
-
-import {doctorBookingSchema} from "../appointment/doctorAppointment.model.js";
+import { doctorBookingSchema } from "../appointment/doctorAppointment.model.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -50,12 +49,13 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "doctor", "admin", "vendor","operator"],
-      default:"user"
+      enum: ["user", "doctor", "admin", "vendor", "operator"],
+      default: "user",
     },
     address: addressSchema, // Embedded document
     medicineOrdered: [orderDetailsSchema],
-    appointmentBooked:[doctorBookingSchema]
+    appointmentBooked: [doctorBookingSchema],
+    userHistory: [{ type: mongoose.Schema.Types.ObjectId, ref: "medicalHistory" }], // Referencing medicalHistory documents
   },
   { timestamps: true }
 );

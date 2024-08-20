@@ -137,12 +137,19 @@ res.status(200).json("request sent to operator")
   }
 };
 
-export const medicalHistory = async (req, res, next) =>{
+export const medicalHistory = async (req, res, next) => {
   const userId = req.user.id;
-  const {conditions, medications, allergies, surgeries, familyHistory } = req.body;
+  const { conditions, medications, allergies, surgeries, familyHistory } = req.body;
+
   try {
-    const user=await User.findById(userId);
-    const History = new History({
+    // Verify that the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Create a new medical history record
+    const patientHistory = new History({
       userId,
       conditions,
       medications,
@@ -150,12 +157,17 @@ export const medicalHistory = async (req, res, next) =>{
       surgeries,
       familyHistory,
     });
-    const savedHistory = await History.save();
-    // Associate with the user
-    await User.findByIdAndUpdate(userId, { History: savedHistory._id });
-    res.status(201).json(savedHistory);
+
+    // Save the medical history record
+
+    // Update the user's medical history reference
+    user.userHistory.push(patientHistory); // Push the ObjectId into the array
+    await user.save(); // Save the user with the updated history reference
+
+    // Respond with the newly created history record
+    res.status(201).json(patientHistory);
   } catch (error) {
+    console.error('Error creating medical history:', error);
     res.status(500).json({ message: 'Error creating medical history', error });
   }
 };
- 

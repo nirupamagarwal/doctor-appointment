@@ -10,7 +10,7 @@ export const verifyUser = (req, res, next) => {
         errorHandler(401, "You are not authorized, kindly login first")
       );
     }
-    const token = authHeader.split(" ")[2];
+    const token = authHeader.split(" ")[1];
     if (!token) {
       return next(errorHandler(401, "Token not provided"));
     }
